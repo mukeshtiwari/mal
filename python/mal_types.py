@@ -31,10 +31,10 @@ def _equal_Q(a, b):
         return True
     elif _hash_map_Q(a):
         akeys = a.keys()
-        akeys.sort()
         bkeys = b.keys()
-        bkeys.sort()
         if len(akeys) != len(bkeys): return False
+        akeys.sort()
+        bkeys.sort()
         for i in range(len(akeys)):
             if akeys[i] != bkeys[i]: return False
             if not _equal_Q(a[akeys[i]], b[bkeys[i]]): return False
@@ -68,6 +68,7 @@ def _string_Q(exp):
         return len(exp) == 0 or exp[0] != _u("\u029e")
     else:
         return False
+def _number_Q(exp): return type(exp) == int
 
 # Symbols
 class Symbol(str): pass
@@ -93,7 +94,8 @@ def _function(Eval, Env, ast, env, params):
     fn.__ast__ = ast
     fn.__gen_env__ = lambda args: Env(env, params, args)
     return fn
-def _function_Q(f): return type(f) == type(function_Q)
+def _function_Q(f):
+    return callable(f)
 
 # lists
 class List(list):

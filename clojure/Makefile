@@ -1,25 +1,30 @@
-CLJ_MODE ?= clj
-SOURCES_UTIL = src/mal/readline.$(CLJ_MODE)
+clojure_MODE ?= clj
+SOURCES_UTIL = src/mal/readline.$(clojure_MODE)
 SOURCES_BASE = $(SOURCES_UTIL) src/mal/printer.cljc
 SOURCES_LISP = src/mal/env.cljc src/mal/core.cljc src/mal/stepA_mal.cljc
 SRCS = $(SOURCES_BASE) src/mal/env.cljc src/mal/core.cljc
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
 
-all: $(if $(filter cljs,$(CLJ_MODE)),node_modules,deps)
+DEPS = $(if $(filter cljs,$(clojure_MODE)),node_modules,deps)
 
-dist: mal.jar mal
+dist: $(if $(filter cljs,$(clojure_MODE)),,mal.jar mal)
 
 deps:
 	lein deps
 
 mal.jar: $(SOURCES)
 	lein with-profile stepA uberjar
-	cp target/mal-0.0.1-SNAPSHOT-standalone.jar $@
+	cp target/stepA_mal.jar $@
 
 SHELL := bash
 mal: mal.jar
 	cat <(echo -e '#!/bin/sh\nexec java -jar "$$0" "$$@"') mal.jar > $@
 	chmod +x mal
+
+src/mal/%.cljc: $(DEPS)
+	@true
+
+#src/mal/stepA_mal.cljc: $(DEPS)
 
 target/%.jar: src/mal/%.cljc $(SRCS)
 	lein with-profile $(word 1,$(subst _, ,$*)) uberjar

@@ -55,6 +55,8 @@
 ;=>nil
 (apply list (list))
 ;=>()
+(apply symbol? (list (quote two)))
+;=>true
 
 ;; Testing apply function with user functions
 (apply (fn* (a b) (+ a b)) (list 2 3))
@@ -136,6 +138,9 @@
 ;; Testing map function with vectors
 (map (fn* (a) (* 2 a)) [1 2 3])
 ;=>(2 4 6)
+
+(map (fn* [& args] (list? args)) [1 2])
+;=>(true true)
 
 ;; Testing vector functions
 
