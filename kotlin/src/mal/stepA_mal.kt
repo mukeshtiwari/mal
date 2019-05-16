@@ -145,6 +145,7 @@ private fun try_catch(ast: MalList, env: Env): MalType =
     try {
         eval(ast.nth(1), env)
     } catch (e: Exception) {
+        if (ast.count() < 3) { throw e }
         val thrown = if (e is MalException) e else MalException(e.message)
         val symbol = (ast.nth(2) as MalList).nth(1) as MalSymbol
 
@@ -171,8 +172,8 @@ fun main(args: Array<String>) {
     rep("(def! not (fn* (a) (if a false true)))", repl_env)
     rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env)
     rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", repl_env)
-    rep("(def! *gensym-counter* (atom 0))", repl_env)
-    rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))", repl_env)
+    rep("(def! inc (fn* [x] (+ x 1)))", repl_env)
+    rep("(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))", repl_env)
     rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))", repl_env)
 
     if (args.any()) {

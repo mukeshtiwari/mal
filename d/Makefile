@@ -1,13 +1,23 @@
+d_MODE ?= gdc
+
+D ?= $(d_MODE)
+
+ifeq ($(D),gdc)
 CFLAGS += -g -O2 -Wall
 LDFLAGS += -lreadline
-
-#####################
-
-TESTS =
-
-SOURCES_BASE = readline.d types.d reader.d printer.d
-SOURCES_LISP = env.d mal_core.d stepA_mal.d
-SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
+OF = -o $@
+else ifeq ($(D),ldc2)
+CFLAGS += -g -O2
+LDFLAGS += -L-lreadline
+OF = -of $@
+else ifeq ($(D),dmd)
+CFLAGS += -g -O
+LDFLAGS += -L-lreadline
+OF = -of=$@
+else
+	@echo "Unsupported D implementation $(D)"
+	@exit 1
+endif
 
 #####################
 
@@ -32,28 +42,13 @@ mal: $(word $(words $(BINS)),$(BINS))
 	cp $< $@
 
 $(OBJS) $(OTHER_OBJS): %.o: %.d
-	gdc $(CFLAGS) -c $(@:%.o=%.d) -o $@
+	$(D) $(CFLAGS) -c $(@:%.o=%.d) $(OF)
 
 $(EARLY_STEPS_BINS): $(EARLY_OBJS)
 $(LATE_STEPS_BINS): $(OTHER_OBJS)
 
 $(BINS): %: %.o
-	gdc $+ -o $@ $(LDFLAGS)
+	$(D) $+ $(OF) $(LDFLAGS)
 
 clean:
 	rm -f $(OBJS) $(BINS) $(OTHER_OBJS) mal
-
-.PHONY: stats stats-lisp tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*//|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-tests: $(TESTS)
-
-$(TESTS):
-	@echo "Running $@"; \
-	./$@ || exit 1; \

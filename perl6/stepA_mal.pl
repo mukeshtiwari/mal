@@ -103,6 +103,7 @@ sub eval ($ast is copy, $env is copy) {
       when 'try*' {
         return eval($a1, $env);
         CATCH {
+          .rethrow if !$a2;
           my $ex = $_ ~~ X::MalThrow ?? .value !! MalString(.Str);
           my $new_env = $env;
           $env.set($a2[1].val, $ex);
@@ -137,8 +138,8 @@ sub MAIN ($source_file?, *@args) {
   rep(q{(def! not (fn* (a) (if a false true)))});
   rep(q{(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))});
   rep(q{(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))});
-  rep(q{(def! *gensym-counter* (atom 0))});
-  rep(q{(def! gensym (fn* [] (symbol (str "G__" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))});
+  rep(q{(def! inc (fn* [x] (+ x 1)))});
+  rep(q{(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str "G__" (swap! counter inc))))))});
   rep(q{(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))});
 
   if ($source_file.defined) {
@@ -150,7 +151,8 @@ sub MAIN ($source_file?, *@args) {
   while (my $line = prompt 'user> ').defined {
     say rep($line);
     CATCH {
-      when X::MalException { .Str.say }
+      when X::MalThrow { say "Error: " ~ pr_str(.value, True) }
+      when X::MalException { say "Error: " ~ .Str }
     }
   }
 }

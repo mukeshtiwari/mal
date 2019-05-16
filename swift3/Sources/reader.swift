@@ -74,7 +74,7 @@ func read_string(_ rdr: Reader) throws -> MalVal {
         if rdr.str[cidx] == "\"" { break }
         cidx = rdr.pos
     }
-    if rdr.pos > rdr.str.endIndex {
+    if rdr.str[rdr.str.index(before: rdr.pos)] != "\"" {
         throw MalError.Reader(msg: "Expected '\"', got EOF")
     }
     let matchStr = rdr.str.substring(with: 
@@ -113,7 +113,7 @@ func read_atom(_ rdr: Reader) throws -> MalVal {
         throw MalError.Reader(msg: "Empty string passed to read_atom")
     }
     switch rdr.str[rdr.pos] {
-    case "-" where !int_char.contains(rdr.str[rdr.str.index(after: rdr.pos)]):
+    case "-" where rdr.str.characters.count == 1 || !int_char.contains(rdr.str[rdr.str.index(after: rdr.pos)]):
         return try read_symbol(rdr)
     case let c where int_char.contains(c):
         return read_int(rdr)
@@ -132,6 +132,7 @@ func read_list(_ rdr: Reader, start: Character = "(", end: Character = ")") thro
         throw MalError.Reader(msg: "expected '\(start)'")
     }
     rdr.next()
+    skip_whitespace_and_comments(rdr)
     var lst: [MalVal] = []
     while rdr.pos < rdr.str.endIndex {
         if (rdr.str[rdr.pos] == end) { break }

@@ -104,7 +104,7 @@
                 (macroexpand a1 env)
 
                 (= (Sym "try*") a0)
-                (if (= (Sym "catch*") (nth a2 0))
+                (if (and a2 (= (Sym "catch*") (nth a2 0)))
                   (try
                     (EVAL a1 env)
                     (except [e Exception]
@@ -171,8 +171,8 @@
 (REP "(def! *host-language* \"Hy\")")
 (REP "(def! not (fn* [a] (if a false true)))")
 (REP "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
-(REP "(def! *gensym-counter* (atom 0))")
-(REP "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+(REP "(def! inc (fn* [x] (+ x 1)))")
+(REP "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))")
 (REP "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 (REP "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
 
@@ -190,6 +190,9 @@
               (print (REP line)))
           (except [EOFError] (break))
           (except [Blank])
-          (except []
-            (print (.join "" (apply traceback.format_exception
-                                    (.exc_info sys))))))))))
+          (except [e Exception]
+            (setv msg (.rstrip (.join "" (apply traceback.format_exception
+                                                (.exc_info sys)))))
+            (if (instance? MalException e)
+              (setv msg (+ (.rstrip msg) ": " (pr-str e.val True))))
+            (print msg)))))))

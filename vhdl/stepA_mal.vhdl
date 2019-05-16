@@ -322,7 +322,8 @@ architecture test of stepA_mal is
               new_env(catch_env, env, vars, call_args);
               EVAL(ast.seq_val(2).seq_val(2), catch_env, result, err);
             else
-              new_nil(result);
+              err := sub_err;
+              return;
             end if;
           end if;
           return;
@@ -469,8 +470,8 @@ architecture test of stepA_mal is
     RE("(def! not (fn* (a) (if a false true)))", repl_env, dummy_val, err);
     RE("(def! load-file (fn* (f) (eval (read-string (str " & '"' & "(do " & '"' & " (slurp f) " & '"' & ")" & '"' & ")))))", repl_env, dummy_val, err);
     RE("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw " & '"' & "odd number of forms to cond" & '"' & ")) (cons 'cond (rest (rest xs)))))))", repl_env, dummy_val, err);
-    RE("(def! *gensym-counter* (atom 0))", repl_env, dummy_val, err);
-    RE("(def! gensym (fn* [] (symbol (str " & '"' & "G__" & '"' & " (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))", repl_env, dummy_val, err);
+    RE("(def! inc (fn* [x] (+ x 1)))", repl_env, dummy_val, err);
+    RE("(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str " & '"' & "G__" & '"' & " (swap! counter inc))))))", repl_env, dummy_val, err);
     RE("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))", repl_env, dummy_val, err);
 
     if program_file /= null then

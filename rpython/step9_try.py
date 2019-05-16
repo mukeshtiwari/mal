@@ -77,6 +77,7 @@ def EVAL(ast, env):
         #print("EVAL %s" % printer._pr_str(ast))
         if not types._list_Q(ast):
             return eval_ast(ast, env)
+        if len(ast) == 0: return ast
 
         # apply list
         ast = macroexpand(ast, env)
@@ -111,6 +112,8 @@ def EVAL(ast, env):
         elif u"macroexpand" == a0sym:
             return macroexpand(ast[1], env)
         elif u"try*" == a0sym:
+            if len(ast) < 3:
+                return EVAL(ast[1], env);
             a1, a2 = ast[1], ast[2]
             a20 = a2[0]
             if isinstance(a20, MalSym):

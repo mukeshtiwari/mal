@@ -146,6 +146,9 @@ proc EVAL {ast env} {
                 return [string_new [eval [obj_val $a1]]]
             }
             "try*" {
+                if {$a2 == ""} {
+                    return [EVAL $a1 $env]
+                }
                 set res {}
                 if { [catch { set res [EVAL $a1 $env] } exception] } {
                     set exc_var [obj_val [lindex [obj_val $a2] 1]]
@@ -246,8 +249,8 @@ RE "(def! *host-language* \"tcl\")" $repl_env
 RE "(def! not (fn* (a) (if a false true)))" $repl_env
 RE "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" $repl_env
 RE "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" $repl_env
-RE "(def! *gensym-counter* (atom 0))" $repl_env
-RE "(def! gensym (fn* \[\] (symbol (str \"G__\" (swap! *gensym-counter* (fn* \[x\] (+ 1 x)))))))" $repl_env
+RE "(def! inc (fn* \[x\] (+ x 1)))" $repl_env
+RE "(def! gensym (let* \[counter (atom 0)\] (fn* \[\] (symbol (str \"G__\" (swap! counter inc))))))" $repl_env
 RE "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))" $repl_env
 
 fconfigure stdout -translation binary
@@ -275,7 +278,12 @@ while {true} {
         continue
     }
     if { [catch { puts [REP $line $repl_env] } exception] } {
-        puts "Error: $exception"
+        if {$exception == "__MalException__"} {
+            set res [pr_str $::mal_exception_obj 1]
+            puts "Error: $res"
+        } else {
+            puts "Error: $exception"
+        }
         if { $DEBUG_MODE } {
             puts $::errorInfo
         }

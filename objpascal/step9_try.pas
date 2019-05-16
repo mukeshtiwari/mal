@@ -215,6 +215,8 @@ begin
         except
             On E : Exception do
             begin
+                if Length(Arr) < 3 then
+                    raise;
                 SetLength(Err, 1);
                 if E.ClassType = TMalException then
                     Err[0] := (E as TMalException).Val
@@ -331,7 +333,10 @@ begin
             On E : MalEOF do Halt(0);
             On E : Exception do
             begin
-                WriteLn('Error: ' + E.message);
+                if E.ClassType = TMalException then
+                    WriteLn('Error: ' + pr_str((E as TMalException).Val, True))
+                else
+                    WriteLn('Error: ' + E.message);
                 WriteLn('Backtrace:');
                 WriteLn(GetBacktrace(E));
             end;

@@ -75,9 +75,8 @@ EVAL <- function(ast, env) {
     repeat {
 
     #cat("EVAL: ", .pr_str(ast,TRUE), "\n", sep="")
-    if (!.list_q(ast)) {
-        return(eval_ast(ast, env))
-    }
+    if (!.list_q(ast)) { return(eval_ast(ast, env)) }
+    if (length(ast) == 0) { return(ast) }
 
     # apply list
     ast <- macroexpand(ast, env)
@@ -122,7 +121,7 @@ EVAL <- function(ast, env) {
                                          new.list(a2[[2]]),
                                          new.list(edata$exc))))
         } else {
-            throw(err)
+            throw(edata$exc)
         }
     } else if (a0sym == "do") {
         eval_ast(slice(ast,2,length(ast)-1), env)
@@ -170,8 +169,8 @@ Env.set(repl_env, "*ARGV*", new.list())
 . <- rep("(def! not (fn* (a) (if a false true)))")
 . <- rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 . <- rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-. <- rep("(def! *gensym-counter* (atom 0))")
-. <- rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+. <- rep("(def! inc (fn* [x] (+ x 1)))")
+. <- rep("(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))")
 . <- rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 
 
@@ -193,7 +192,7 @@ repeat {
     tryCatch({
         cat(rep(line),"\n", sep="")
     }, error=function(err) {
-        cat("Error: ", get_error(err),"\n", sep="")
+        cat("Error: ", .pr_str(get_error(err),TRUE),"\n", sep="")
     })
     # R debug/fatal with tracebacks:
     #cat(rep(line),"\n", sep="")

@@ -29,12 +29,13 @@
                 *unbox-exception*)
       env)))
 
-(define (READ)
-  (read_str (_readline "user> ")))
+(define (READ str)
+  (read_str str))
 
 (define (eval_ast ast env)
   (define (_eval x) (EVAL x env))
   (match ast
+    ((? _nil? obj) obj)
     ((? symbol? sym) (env-has sym env))
     ((? list? lst) (map _eval lst))
     ((? vector? vec) (vector-map (lambda (i x) (_eval x)) vec))
@@ -44,20 +45,6 @@
      (list->hash-map (hash-fold (lambda (k v p) (cons k (cons (_eval v) p))) '() ht)))
     (else ast)))
 
-(define (eval_func ast env)
-  (define (_eval o) (EVAL o env))
-  (define (func? x)
-    (let ((f (if (list? x)
-                 (EVAL x env)
-                 x)))
-      (if (callable? f)
-          f
-          (and=> (env-check f env) is-func))))
-  (cond
-   ((func? (car ast))
-    => (lambda (c)
-         (callable-apply c (map _eval (cdr ast)))))
-   (else (throw 'mal-error (format #f "'~a' not found" (car ast))))))
 
 (define (eval_seq ast env)
   (cond
@@ -154,18 +141,18 @@
                       (tail-call (car (take-right body 1))))
                   (eval_seq mexpr nenv)
                   (tco-loop tail-call nenv))))))))
+        (('try* A)
+         (EVAL A env))
         (('try* A ('catch* B C))
          (catch
           #t
           (lambda () (EVAL A env))
-          (lambda (k . e)
-            (case k
-              ((mal-error)
-               (let ((nenv (make-Env #:outer env #:binds (list B) #:exprs e)))
-                 (EVAL C nenv)))
-              ;; TODO: add backtrace
-              (else (print-exception (current-output-port) #f k e))))))
-        (else (eval_func ast env))))))
+          (lambda e
+            (let ((nenv (make-Env #:outer env #:binds (list B) #:exprs (cdr e))))
+              (EVAL C nenv)))))
+        (else
+          (let ((el (map (lambda (x) (EVAL x env)) ast)))
+            (callable-apply (car el) (cdr el))))))))
 
 (define (EVAL-string str)
   (EVAL (read_str str) *toplevel*))
@@ -179,24 +166,25 @@
 
 (define (REPL)
   (LOOP
-   (catch #t
-          (lambda () (PRINT (EVAL (READ) *toplevel*)))
-          (lambda (k . e)
-            (case k
-              ((mal-error)
-               (if (string=? (car e) "blank line")
-                   (display "")
-                   (format #t "Error: ~a~%" (car e))))
-              (else (print-exception (current-output-port) #f k e)))))))
+   (let ((line (_readline "user> ")))
+     (cond
+       ((eof-object? line) #f)
+       ((string=? line "") #t)
+       (else
+         (catch 'mal-error
+                (lambda () (PRINT (EVAL (READ line) *toplevel*)))
+                (lambda (k . e)
+                  (format #t "Error: ~a~%" (pr_str (car e) #t)))))))))
 
 ;; initialization
 ((*toplevel* 'set) 'eval (make-func (lambda (ast) (EVAL ast *toplevel*))))
 ((*toplevel* 'set) 'throw (make-func (lambda (val) (throw 'mal-error val))))
 ((*toplevel* 'set) '*ARGV* '())
+(EVAL-string "(def! not (fn* (x) (if x false true)))")
 (EVAL-string "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (EVAL-string "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-(EVAL-string "(def! *gensym-counter* (atom 0))")
-(EVAL-string "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+(EVAL-string "(def! inc (fn* [x] (+ x 1)))")
+(EVAL-string "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))")
 (EVAL-string "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 (EVAL-string "(def! *host-language* \"guile\")")
 

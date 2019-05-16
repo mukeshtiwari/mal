@@ -1,4 +1,5 @@
-import { readline } from './node_readline'
+import rl from './node_readline.js'
+const readline = rl.readline
 import { _list_Q, _malfunc, _malfunc_Q } from './types'
 import { BlankException, read_str } from './reader'
 import { pr_str } from './printer'
@@ -139,8 +140,8 @@ REP('(def! *host-language* "ecmascript6")')
 REP('(def! not (fn* (a) (if a false true)))')
 REP('(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) ")")))))')
 REP('(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list \'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons \'cond (rest (rest xs)))))))')
-REP('(def! *gensym-counter* (atom 0))')
-REP('(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))')
+REP('(def! inc (fn* [x] (+ x 1)))')
+REP('(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))')
 REP('(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))')
 
 if (process.argv.length > 2) {
@@ -157,7 +158,7 @@ while (true) {
         if (line) { console.log(REP(line)) }
     } catch (exc) {
         if (exc instanceof BlankException) { continue }
-        if (exc.stack) { console.log(exc.stack) }
-        else           { console.log(`Error: ${exc}`) }
+        if (exc instanceof Error) { console.warn(exc.stack) }
+        else { console.warn(`Error: ${pr_str(exc, true)}`) }
     }
 }

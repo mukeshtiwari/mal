@@ -99,6 +99,8 @@ and eval ast env =
        eval (quasiquote ast) env
     | T.List { T.value = [T.Symbol { T.value = "macroexpand" }; ast] } ->
        macroexpand ast env
+    | T.List { T.value = [T.Symbol { T.value = "try*" }; scary]} ->
+       (eval scary env)
     | T.List { T.value = [T.Symbol { T.value = "try*" }; scary ;
                           T.List { T.value = [T.Symbol { T.value = "catch*" };
                                               local ; handler]}]} ->
@@ -107,7 +109,7 @@ and eval ast env =
            let value = match exn with
              | Types.MalExn value -> value
              | Invalid_argument msg -> T.String msg
-             | _ -> (T.String "OCaml exception") in
+             | e -> (T.String (Printexc.to_string e)) in
            let sub_env = Env.make (Some env) in
            Env.set sub_env local value;
            eval handler sub_env)
@@ -135,8 +137,8 @@ let rec main =
     ignore (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" repl_env);
     ignore (rep "(def! not (fn* (a) (if a false true)))" repl_env);
     ignore (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" repl_env);
-    ignore (rep "(def! *gensym-counter* (atom 0))" repl_env);
-    ignore (rep "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))" repl_env);
+    ignore (rep "(def! inc (fn* [x] (+ x 1)))" repl_env);
+    ignore (rep "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))" repl_env);
     ignore (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))" repl_env);
 
     if Array.length Sys.argv > 1 then
@@ -160,8 +162,8 @@ let rec main =
              | Invalid_argument x ->
                 output_string stderr ("Invalid_argument exception: " ^ x ^ "\n");
                 flush stderr
-             | _ ->
-                output_string stderr ("Erroringness!\n");
+             | e ->
+                output_string stderr ((Printexc.to_string e) ^ "\n");
                 flush stderr
         done
       end

@@ -109,7 +109,8 @@
                   (catch #?(:clj Throwable :cljs :default) t
                     (EVAL (nth a2 2) (env/env env
                                               [(nth a2 1)]
-                                              [#?(:clj (.getMessage t)
+                                              [#?(:clj (or (.getMessage t)
+                                                           (.toString t))
                                                   :cljs (.-message t))]))))
                 (EVAL a1 env))
 
@@ -143,7 +144,7 @@
                   (apply f args))))))))))
 
 ;; print
-(defn PRINT [exp] (pr-str exp))
+(defn PRINT [exp] (printer/pr-str exp))
 
 ;; repl
 (def repl-env (env/env))
@@ -169,6 +170,9 @@
       (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
         (try
           (println (rep line))
+          #?(:cljs (catch ExceptionInfo e
+                     (println "Error:" (or (:data (ex-data e))
+                                           (.-stack e)))))
           #?(:clj  (catch Throwable e (clojure.repl/pst e))
              :cljs (catch js/Error e (println (.-stack e))))))
       (recur))))

@@ -134,7 +134,7 @@ func EVAL(ast, env)
       return macroexpand(*lst(2), env)
     } else if (a1 == "try*") {
       ret = EVAL(*lst(2), env)
-      if (structof(ret) == MalError) {
+      if (structof(ret) == MalError && numberof(lst) > 2) {
         exc = *ret.obj
         if (is_void(exc)) {
           exc = MalString(val=ret.message)
@@ -223,12 +223,10 @@ func prepare_argv_list(args)
 }
 
 repl_env = nil
-stdin_file = open("/dev/stdin", "r")
 
 func main(void)
 {
   extern repl_env
-  extern stdin_file
   repl_env = env_new(pointer(0))
 
   // core.i: defined using Yorick
@@ -244,8 +242,8 @@ func main(void)
   RE, "(def! not (fn* (a) (if a false true)))", repl_env
   RE, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env
   RE, "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", repl_env
-  RE, "(def! *gensym-counter* (atom 0))", repl_env
-  RE, "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))", repl_env
+  RE, "(def! inc (fn* [x] (+ x 1)))", repl_env
+  RE, "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))", repl_env
   RE, "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))", repl_env
 
   if (numberof(command_line_args) > 0) {
@@ -254,13 +252,21 @@ func main(void)
   }
 
   RE, "(println (str \"Mal [\" *host-language* \"]\"))", repl_env
+  stdin_file = open("/dev/stdin", "r")
   while (1) {
     write, format="%s", "user> "
     line = rdline(stdin_file, prompt="")
     if (!line) break
     if (strlen(line) > 0) {
       result = REP(line, repl_env)
-      if (structof(result) == MalError) write, format="Error: %s\n", result.message
+      if (structof(result) == MalError) {
+        exc = *result.obj
+        if (is_void(exc)) {
+          write, format="Error: %s\n", result.message
+        } else {
+          write, format="Error: %s\n", pr_str(exc, 1)
+        }
+      }
       else write, format="%s\n", result
     }
   }

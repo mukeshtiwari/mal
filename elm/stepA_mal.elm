@@ -81,12 +81,11 @@ malInit =
                             (nth xs 1)
                             (throw "odd number of forms to cond"))
                         (cons 'cond (rest (rest xs)))))))"""
-    , """(def! *gensym-counter* (atom 0))"""
+    , """(def! inc (fn* [x] (+ x 1)))"""
     , """(def! gensym
-            (fn* [] (symbol
-                (str "G__"
-                    (swap! *gensym-counter*
-                        (fn* [x] (+ 1 x)))))))"""
+            (let* [counter (atom 0)]
+              (fn* []
+                (symbol (str "G__" (swap! counter inc))))))"""
     , """(defmacro! or
             (fn* (& xs)
                 (if (empty? xs)
@@ -716,6 +715,8 @@ macroexpand expr =
 evalTry : List MalExpr -> Eval MalExpr
 evalTry args =
     case args of
+        [ body ] ->
+            eval body
         [ body, MalList [ MalSymbol "catch*", MalSymbol sym, handler ] ] ->
             eval body
                 |> Eval.catchError
@@ -740,7 +741,7 @@ print env =
 
 printError : Env -> MalExpr -> String
 printError env expr =
-    "ERR:" ++ (printString env False expr)
+    "Error: " ++ (printString env False expr)
 
 
 {-| Read-Eval-Print.

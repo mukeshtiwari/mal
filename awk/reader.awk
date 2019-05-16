@@ -1,10 +1,10 @@
 function reader_read_string(token,    v, r)
 {
 	token = substr(token, 1, length(token) - 1)
-	gsub(/\\\\/, "\u029e", token)
+	gsub(/\\\\/, "\xf7", token)
 	gsub(/\\"/, "\"", token)
 	gsub(/\\n/, "\n", token)
-	gsub("\u029e", "\\", token)
+	gsub("\xf7", "\\", token)
 	return token
 }
 
@@ -18,7 +18,11 @@ function reader_read_atom(token)
 	case /^:/:
 		return ":" token
 	case /^"/:
-		return reader_read_string(token)
+		if (token ~ /^\"(\\[^\r\n]|[^\\"\r\n])*\"$/) {
+				return reader_read_string(token)
+		} else {
+				return "!\"Expected '\"', got EOF."
+		}
 	case /^-?[0-9]+$/:
 		return "+" token
 	default:
@@ -46,7 +50,7 @@ function reader_read_list(reader, type, end,    idx, len, ret)
 	}
 	types_heap[idx]["len"] = len
 	types_release(type idx)
-	return "!\"expect " end ", got EOF"
+	return "!\"expected '" end "', got EOF"
 }
 
 function reader_read_hash(reader,    idx, key, val)
@@ -79,7 +83,7 @@ function reader_read_hash(reader,    idx, key, val)
 		types_heap[idx][key] = val
 	}
 	types_release("{" idx)
-	return "!\"expect }, got EOF"
+	return "!\"expected '}', got EOF"
 }
 
 function reader_read_abbrev(reader, symbol,    val, idx)
@@ -147,7 +151,7 @@ function reader_read_from(reader,    current)
 
 function reader_tokenizer(str,    reader,    len, r)
 {
-	for (len = 0; match(str, /^[ \t\r\n,]*(~@|[\[\]{}()'`~^@]|\"(\\[^\r\n]|[^\\"\r\n])*\"|;[^\r\n]*|[^ \t\r\n\[\]{}('"`,;)^~@][^ \t\r\n\[\]{}('"`,;)]*)/, r); ) {
+	for (len = 0; match(str, /^[ \t\r\n,]*(~@|[\[\]{}()'`~^@]|\"(\\[^\r\n]|[^\\"\r\n])*\"?|;[^\r\n]*|[^ \t\r\n\[\]{}('"`,;)^~@][^ \t\r\n\[\]{}('"`,;)]*)/, r); ) {
 		if (substr(r[1], 1, 1) != ";") {
 			reader[len++] = r[1]
 		}

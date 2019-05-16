@@ -74,9 +74,11 @@ add new implementations to mal as efficiently as possible, then you
 SHOULD find the most similar target language implementation and refer
 to it frequently.
 
-If you want a fairly long list of programming languages with an
-approximate measure of popularity, try the [Programming Language
-Popularity Chart](http://langpop.corger.nl/)
+If you want a list of programming languages with an
+approximate measure of popularity try the [RedMonk Programming
+Language
+Rankings](https://redmonk.com/sogrady/2019/03/20/language-rankings-1-19/)
+or the [GitHut 2.0 Project](https://madnight.github.io/githut).
 
 
 ## Getting started
@@ -186,7 +188,7 @@ a textual diff/comparison tool to compare the previous pseudocode step
 with the one you are working on. The architecture diagram images have
 changes from the previous step highlighted in red. There is also
 a concise
-[cheatsheet](http://kanaka.github.io/mal/process/cheatsheet.html) that
+[cheatsheet](http://kanaka.github.io/mal/cheatsheet.html) that
 summarizes the key changes at each step.
 
 If you get completely stuck and are feeling like giving up, then you
@@ -309,16 +311,16 @@ expression support.
   returns the token at the current position.
 
 * Add a function `read_str` in `reader.qx`. This function
-  will call `tokenizer` and then create a new Reader object instance
+  will call `tokenize` and then create a new Reader object instance
   with the tokens. Then it will call `read_form` with the Reader
   instance.
 
-* Add a function `tokenizer` in `reader.qx`. This function will take
+* Add a function `tokenize` in `reader.qx`. This function will take
   a single string and return an array/list
   of all the tokens (strings) in it. The following regular expression
   (PCRE) will match all mal tokens.
 ```
-[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)
+[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"?|;.*|[^\s\[\]{}('"`,;)]*)
 ```
 * For each match captured within the parenthesis starting at char 6 of the
   regular expression a new token will be created.
@@ -331,9 +333,11 @@ expression support.
   * ```[\[\]{}()'`~^@]```: Captures any special single character, one of
     ```[]{}()'`~^@``` (tokenized).
 
-  * `"(?:\\.|[^\\"])*"`: Starts capturing at a double-quote and stops at the
-    next double-quote unless it was proceeded by a backslash in which case it
-    includes it until the next double-quote (tokenized).
+  * `"(?:\\.|[^\\"])*"?`: Starts capturing at a double-quote and stops at the
+    next double-quote unless it was preceded by a backslash in which case it
+    includes it until the next double-quote (tokenized). It will also
+    match unbalanced strings (no ending double-quote) which should be
+    reported as an error.
 
   * `;.*`: Captures any sequence of characters starting with `;` (tokenized).
 
@@ -371,8 +375,8 @@ expression support.
   numbers (integers) and symbols. This will allow you to proceed
   through the next couple of steps before you will need to implement
   the other fundamental mal types: nil, true, false, and string. The
-  remaining mal types: keyword, vector, hash-map, and atom do not
-  need to be implemented until step 9 (but can be implemented at any
+  remaining scalar mal type, keyword does not
+  need to be implemented until step A (but can be implemented at any
   point between this step and that). BTW, symbols types are just an
   object that contains a single string name value (some languages have
   symbol types already).
@@ -425,8 +429,9 @@ and each step will give progressively more bang for the buck.
 
 
 * Add support for the other basic data type to your reader and printer
-  functions: string, nil, true, and false. These become mandatory at
-  step 4. When a string is read, the following transformations are
+  functions: string, nil, true, and false. Nil, true, and false
+  become mandatory at step 4, strings at step 6. When a string is read,
+  the following transformations are
   applied: a backslash followed by a doublequote is translated into
   a plain doublequote character, a backslash followed by "n" is
   translated into a newline, and a backslash followed by another
@@ -727,7 +732,7 @@ diff -urp ../process/step3_env.txt ../process/step4_if_fn_do.txt
   of the binds list to the respective element of the `exprs` list.
 
 * Add support to `printer.qx` to print functions values. A string
-  literal like "#<function>" is sufficient.
+  literal like "#\<function>" is sufficient.
 
 * Add the following special forms to `EVAL`:
 
@@ -761,10 +766,10 @@ the apply section of `EVAL`.
 
 Try out the basic functionality you have implemented:
 
-  * `(fn* [a] a)` -> `#<function>`
-  * `( (fn* [a] a) 7)` -> `7`
-  * `( (fn* [a] (+ a 1)) 10)` -> `11`
-  * `( (fn* [a b] (+ a b)) 2 3)` -> `5`
+  * `(fn* (a) a)` -> `#<function>`
+  * `( (fn* (a) a) 7)` -> `7`
+  * `( (fn* (a) (+ a 1)) 10)` -> `11`
+  * `( (fn* (a b) (+ a b)) 2 3)` -> `5`
 
 * Add a new file `core.qx` and define an associative data structure
   `ns` (namespace) that maps symbols to functions. Move the numeric
@@ -1128,7 +1133,7 @@ diff -urp ../process/step6_file.txt ../process/step7_quote.txt
 * Copy `step6_file.qx` to `step7_quote.qx`.
 
 * Before implementing the quoting forms, you will need to implement
-* some supporting functions in the core namespace:
+  some supporting functions in the core namespace:
   * `cons`: this function takes a list as its second
     parameter and returns a new list that has the first argument
     prepended to it.
@@ -1177,7 +1182,7 @@ make "test^quux^step7"
 
 Quoting is one of the more mundane functions available in mal, but do
 not let that discourage you. Your mal implementation is almost
-complete, and quoting sets the stage for the next very exiting step:
+complete, and quoting sets the stage for the next very exciting step:
 macros.
 
 
@@ -1450,6 +1455,9 @@ self-hosting.
   * `vector?`: takes a single argument and returns true (mal true
     value) if the argument is a vector, otherwise returns false (mal
     false value).
+  * `sequential?`: takes a single argument and returns true (mal true
+    value) if it is a list or a vector, otherwise returns false (mal
+    false value).
   * `hash-map`: takes a variable but even number of arguments and
     returns a new mal hash-map value with keys from the odd arguments
     and values from the even arguments respectively. This is basically
@@ -1477,9 +1485,6 @@ self-hosting.
     all the keys in the hash-map.
   * `vals`: takes a hash-map and returns a list (mal list value) of
     all the values in the hash-map.
-  * `sequential?`: takes a single arguments and returns true (mal true
-    value) if it is a list or a vector, otherwise returns false (mal
-    false value).
 
 
 <a name="stepA"></a>
@@ -1532,6 +1537,10 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
     result of reading the next next form (2nd argument) (`read_form`) and the
     next form (1st argument) in that order
     (metadata comes first with the ^ macro and the function second).
+  * If you implemented as `defmacro!` to mutate an existing function
+    without copying it, you can now use the function copying mechanism
+    used for metadata to make functions immutable even in the
+    defmacro! case...
 
 * Add a new "\*host-language\*" (symbol) entry to your REPL
   environment. The value of this entry should be a mal string
@@ -1542,6 +1551,11 @@ diff -urp ../process/step9_try.txt ../process/stepA_mal.txt
   to print a startup header:
   "(println (str \"Mal [\" \*host-language\* \"]\"))".
 
+* Ensure that the REPL environment contains definitions for `time-ms`,
+  `string?`, `number?`, `seq`, and `conj`.  It doesn't really matter
+  what they do at this stage: they just need to be defined.  Making
+  them functions that raise a "not implemented" exception would be
+  fine.
 
 Now go to the top level, run the step A tests:
 ```
@@ -1610,9 +1624,9 @@ definition and use `rep` to define the new counter, `gensym` function
 and the clean `or` macro. Here are the string arguments you need to
 pass to `rep`:
 ```
-"(def! *gensym-counter* (atom 0))"
+"(def! inc (fn* [x] (+ x 1)))"
 
-"(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+"(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))"
 
 "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
 ```
@@ -1625,7 +1639,7 @@ For extra information read [Peter Seibel's thorough discussion about
 
 * Add metadata support to other composite data types (lists, vectors
   and hash-maps), and to native functions.
-* Add the following new core functions:
+* Add the following new core functions (and remove any stub versions):
   * `time-ms`: takes no arguments and returns the number of
     milliseconds since epoch (00:00:00 UTC January 1, 1970), or, if
     not possible, since another point in time (`time-ms` is usually
@@ -1669,9 +1683,9 @@ For extra information read [Peter Seibel's thorough discussion about
 * If you have created an implementation for a new target language (or
   a unique and interesting variant of an existing implementation),
   consider sending a pull request to add it into the main mal
-  repository. The [FAQ](FAQ.md#add_implementation) describes general
-  requirements for getting an implementation merged into the main
-  repository.
+  repository. The [FAQ](../docs/FAQ.md#will-you-add-my-new-implementation)
+  describes general requirements for getting an implementation merged
+  into the main repository.
 * Take your interpreter implementation and have it emit source code in
   the target language rather than immediately evaluating it. In other
   words, create a compiler.

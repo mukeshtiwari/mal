@@ -143,6 +143,9 @@ proc EVAL {ast env} {
                 return [macroexpand $a1 $env]
             }
             "try*" {
+                if {$a2 == ""} {
+                    return [EVAL $a1 $env]
+                }
                 set res {}
                 if { [catch { set res [EVAL $a1 $env] } exception] } {
                     set exc_var [obj_val [lindex [obj_val $a2] 1]]
@@ -267,7 +270,12 @@ while {true} {
         continue
     }
     if { [catch { puts [REP $line $repl_env] } exception] } {
-        puts "Error: $exception"
+        if {$exception == "__MalException__"} {
+            set res [pr_str $::mal_exception_obj 1]
+            puts "Error: $res"
+        } else {
+            puts "Error: $exception"
+        }
         if { $DEBUG_MODE } {
             puts $::errorInfo
         }

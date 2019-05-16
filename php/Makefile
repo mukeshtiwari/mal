@@ -1,6 +1,3 @@
-
-TESTS =
-
 SOURCES_BASE = readline.php types.php reader.php printer.php interop.php
 SOURCES_LISP = env.php core.php stepA_mal.php
 SOURCES = $(SOURCES_BASE) $(SOURCES_LISP)
@@ -17,20 +14,8 @@ mal: mal.php
 	cat $< >> $@
 	chmod +x $@
 
+mal-web.php: mal.php
+	cat $< | ( IFS="NON-MATCHING-IFS"; while read -r line; do if [ "$$line" = "// run mal file" ]; then echo "?>"; cat webrunner.php; echo "<?php"; fi; printf '%s\n' "$$line"; done < "$<" ) > $@
+
 clean:
-	rm -f mal.php mal
-
-.PHONY: stats tests $(TESTS)
-
-stats: $(SOURCES)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*//|^[[:space:]]/\*|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-stats-lisp: $(SOURCES_LISP)
-	@wc $^
-	@printf "%5s %5s %5s %s\n" `grep -E "^[[:space:]]*#|^[[:space:]]*//|^[[:space:]]/\*|^[[:space:]]*$$" $^ | wc` "[comments/blanks]"
-
-tests: $(TESTS)
-
-$(TESTS):
-	@echo "Running $@"; \
-	php $@ || exit 1; \
+	rm -f mal.php mal mal-web.php

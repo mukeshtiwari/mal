@@ -700,6 +700,8 @@ macroexpand expr =
 evalTry : List MalExpr -> Eval MalExpr
 evalTry args =
     case args of
+        [ body ] ->
+            eval body
         [ body, MalList [ MalSymbol "catch*", MalSymbol sym, handler ] ] ->
             eval body
                 |> Eval.catchError
@@ -724,7 +726,7 @@ print env =
 
 printError : Env -> MalExpr -> String
 printError env expr =
-    "ERR:" ++ (printString env False expr)
+    "Error: " ++ (printString env False expr)
 
 
 {-| Read-Eval-Print.

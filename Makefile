@@ -32,6 +32,7 @@ all help:
 	@echo 'make MAL_IMPL=IMPL "test^mal..."  # use IMPL for self-host tests'
 	@echo 'make REGRESS=1 "test..."          # test with previous step tests too'
 	@echo 'make DOCKERIZE=1 ...              # to dockerize above rules/targets'
+	@echo 'make TEST_OPTS="--opt ..."        # options to pass to runtest.py'
 	@echo
 	@echo 'Other:'
 	@echo
@@ -50,6 +51,8 @@ MAL_IMPL = js
 basic_MODE = cbm
 # clj or cljs (Clojure vs ClojureScript/lumo)
 clojure_MODE = clj
+# gdc, ldc2, or dmd
+d_MODE = gdc
 # python, js, cpp, or neko
 haxe_MODE = neko
 # octave or matlab
@@ -58,6 +61,11 @@ matlab_MODE = octave
 python_MODE = python
 # scheme (chibi, kawa, gauche, chicken, sagittarius, cyclone, foment)
 scheme_MODE = chibi
+# wasmtime js node wace_libc wace_fooboot
+wasm_MODE = wasmtime
+
+# Path to loccount for counting LOC stats
+LOCCOUNT = loccount
 
 # Extra options to pass to runtest.py
 TEST_OPTS =
@@ -78,12 +86,12 @@ DOCKERIZE =
 # Implementation specific settings
 #
 
-IMPLS = ada awk bash basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
-	elisp elixir elm erlang es6 factor forth fsharp go groovy gst guile haskell \
-	haxe hy io java js julia kotlin livescript logo lua make mal matlab miniMAL \
-	nasm nim objc objpascal ocaml perl perl6 php pil plpgsql plsql powershell ps \
-	python r racket rexx rpython ruby rust scala scheme skew swift swift3 tcl \
-	ts vb vhdl vimscript yorick
+IMPLS = ada ada.2 awk bash basic c chuck clojure coffee common-lisp cpp crystal cs d dart \
+	elisp elixir elm erlang es6 factor fantom forth fsharp go groovy gnu-smalltalk \
+	guile haskell haxe hy io java js julia kotlin livescript logo lua make mal \
+	matlab miniMAL nasm nim objc objpascal ocaml perl perl6 php picolisp plpgsql \
+	plsql powershell ps python r racket rexx rpython ruby rust scala scheme skew \
+	swift swift3 swift4 tcl ts vala vb vhdl vimscript wasm yorick
 
 EXTENSION = .mal
 
@@ -114,18 +122,16 @@ regress_step8 = $(regress_step7) step8
 regress_step9 = $(regress_step8) step9
 regress_stepA = $(regress_step9) stepA
 
-test_EXCLUDES += test^bash^step5   # never completes at 10,000
-test_EXCLUDES += test^basic^step5  # too slow, and limited to ints of 2^16
-test_EXCLUDES += test^logo^step5   # too slow for 10,000
-test_EXCLUDES += test^make^step5   # no TCO capability (iteration or recursion)
-test_EXCLUDES += test^mal^step5    # host impl dependent
-test_EXCLUDES += test^matlab^step5 # never completes at 10,000
-test_EXCLUDES += test^plpgsql^step5 # too slow for 10,000
-test_EXCLUDES += test^plsql^step5  # too slow for 10,000
-test_EXCLUDES += test^powershell^step5  # too slow for 10,000
-test_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),test^haxe^step5,) # cpp finishes 10,000, segfaults at 100,000
-
-perf_EXCLUDES = mal  # TODO: fix this
+step5_EXCLUDES += bash        # never completes at 10,000
+step5_EXCLUDES += basic       # too slow, and limited to ints of 2^16
+step5_EXCLUDES += logo        # too slow for 10,000
+step5_EXCLUDES += make        # no TCO capability (iteration or recursion)
+step5_EXCLUDES += mal         # host impl dependent
+step5_EXCLUDES += matlab      # never completes at 10,000
+step5_EXCLUDES += plpgsql     # too slow for 10,000
+step5_EXCLUDES += plsql       # too slow for 10,000
+step5_EXCLUDES += powershell  # too slow for 10,000
+step5_EXCLUDES += $(if $(filter cpp,$(haxe_MODE)),haxe,) # cpp finishes 10,000, segfaults at 100,000
 
 dist_EXCLUDES += mal
 # TODO: still need to implement dist
@@ -172,6 +178,7 @@ scheme_STEP_TO_PROG_foment      = scheme/$($(1)).scm
 
 # Map of step (e.g. "step8") to executable file for that step
 ada_STEP_TO_PROG =     ada/$($(1))
+ada.2_STEP_TO_PROG =   ada.2/$($(1))
 awk_STEP_TO_PROG =     awk/$($(1)).awk
 bash_STEP_TO_PROG =    bash/$($(1)).sh
 basic_STEP_TO_PROG =   $(basic_STEP_TO_PROG_$(basic_MODE))
@@ -191,11 +198,12 @@ elm_STEP_TO_PROG =     elm/$($(1)).js
 erlang_STEP_TO_PROG =  erlang/$($(1))
 es6_STEP_TO_PROG =     es6/$($(1)).mjs
 factor_STEP_TO_PROG =  factor/$($(1))/$($(1)).factor
+fantom_STEP_TO_PROG =  fantom/lib/fan/$($(1)).pod
 forth_STEP_TO_PROG =   forth/$($(1)).fs
 fsharp_STEP_TO_PROG =  fsharp/$($(1)).exe
 go_STEP_TO_PROG =      go/$($(1))
 groovy_STEP_TO_PROG =  groovy/$($(1)).groovy
-gst_STEP_TO_PROG =     gst/$($(1)).st
+gnu-smalltalk_STEP_TO_PROG = gnu-smalltalk/$($(1)).st
 guile_STEP_TO_PROG =   guile/$($(1)).scm
 haskell_STEP_TO_PROG = haskell/$($(1))
 haxe_STEP_TO_PROG =    $(haxe_STEP_TO_PROG_$(haxe_MODE))
@@ -220,7 +228,7 @@ ocaml_STEP_TO_PROG =   ocaml/$($(1))
 perl_STEP_TO_PROG =    perl/$($(1)).pl
 perl6_STEP_TO_PROG =   perl6/$($(1)).pl
 php_STEP_TO_PROG =     php/$($(1)).php
-pil_STEP_TO_PROG =     pil/$($(1)).l
+picolisp_STEP_TO_PROG = picolisp/$($(1)).l
 plpgsql_STEP_TO_PROG = plpgsql/$($(1)).sql
 plsql_STEP_TO_PROG =   plsql/$($(1)).sql
 powershell_STEP_TO_PROG =  powershell/$($(1)).ps1
@@ -231,17 +239,20 @@ racket_STEP_TO_PROG =  racket/$($(1)).rkt
 rexx_STEP_TO_PROG =    rexx/$($(1)).rexxpp
 rpython_STEP_TO_PROG = rpython/$($(1))
 ruby_STEP_TO_PROG =    ruby/$($(1)).rb
-rust_STEP_TO_PROG =    rust/target/release/$($(1))
+rust_STEP_TO_PROG =    rust/$($(1))
 scala_STEP_TO_PROG =   scala/target/scala-2.11/classes/$($(1)).class
 scheme_STEP_TO_PROG =  $(scheme_STEP_TO_PROG_$(scheme_MODE))
 skew_STEP_TO_PROG =    skew/$($(1)).js
 swift_STEP_TO_PROG =   swift/$($(1))
 swift3_STEP_TO_PROG =  swift3/$($(1))
+swift4_STEP_TO_PROG =  swift4/$($(1))
 tcl_STEP_TO_PROG =     tcl/$($(1)).tcl
 ts_STEP_TO_PROG =      ts/$($(1)).js
+vala_STEP_TO_PROG =    vala/$($(1))
 vb_STEP_TO_PROG =      vb/$($(1)).exe
 vhdl_STEP_TO_PROG =    vhdl/$($(1))
 vimscript_STEP_TO_PROG = vimscript/$($(1)).vim
+wasm_STEP_TO_PROG =    wasm/$($(1)).wasm
 yorick_STEP_TO_PROG =  yorick/$($(1)).i
 
 
@@ -262,7 +273,10 @@ opt_OPTIONAL        = $(if $(strip $(OPTIONAL)),$(if $(filter t true T True TRUE
 # test files will include step 2 tests through tests for the step
 # being tested.
 STEP_TEST_FILES = $(strip $(wildcard \
-		    $(foreach s,$(if $(strip $(REGRESS)),$(regress_$(2)),$(2)),\
+		    $(foreach s,$(if $(strip $(REGRESS)),\
+			$(filter-out $(if $(filter $(1),$(step5_EXCLUDES)),step5,),\
+			  $(regress_$(2)))\
+			,$(2)),\
 		      $(1)/tests/$($(s))$(EXTENSION) tests/$($(s))$(EXTENSION))))
 
 # DOCKERIZE utility functions
@@ -315,11 +329,11 @@ get_runtest_cmd = $(call get_run_prefix,$(1),$(2),$(if $(filter cs fsharp tcl vb
 get_argvtest_cmd = $(call get_run_prefix,$(1),$(2)) ../run_argv_test.sh
 
 # Derived lists
-STEPS = $(sort $(filter step%,$(.VARIABLES)))
+STEPS = $(sort $(filter-out %_EXCLUDES,$(filter step%,$(.VARIABLES))))
 DO_IMPLS = $(filter-out $(SKIP_IMPLS),$(IMPLS))
 IMPL_TESTS = $(foreach impl,$(DO_IMPLS),test^$(impl))
 STEP_TESTS = $(foreach step,$(STEPS),test^$(step))
-ALL_TESTS = $(filter-out $(test_EXCLUDES),\
+ALL_TESTS = $(filter-out $(foreach e,$(step5_EXCLUDES),test^$(e)^step5),\
               $(strip $(sort \
                 $(foreach impl,$(DO_IMPLS),\
                   $(foreach step,$(STEPS),test^$(impl)^$(step))))))
@@ -329,6 +343,8 @@ DOCKER_BUILD = $(foreach impl,$(DO_IMPLS),docker-build^$(impl))
 DOCKER_SHELL = $(foreach impl,$(DO_IMPLS),docker-shell^$(impl))
 
 IMPL_PERF = $(foreach impl,$(filter-out $(perf_EXCLUDES),$(DO_IMPLS)),perf^$(impl))
+
+IMPL_STATS = $(foreach impl,$(DO_IMPLS),stats^$(impl))
 
 IMPL_REPL = $(foreach impl,$(DO_IMPLS),repl^$(impl))
 ALL_REPL = $(strip $(sort \
@@ -447,6 +463,19 @@ $(ALL_REPL): $$(call $$(word 2,$$(subst ^, ,$$(@)))_STEP_TO_PROG,$$(word 3,$$(su
 $(IMPL_REPL): $$@^stepA
 
 #
+# Stats test rules
+#
+
+# For a concise summary:
+#   make stats | egrep -A1 "^Stats for|^all" | egrep -v "^all|^--"
+stats: $(IMPL_STATS)
+
+$(IMPL_STATS):
+	@$(foreach impl,$(word 2,$(subst ^, ,$(@))),\
+	  echo "Stats for $(impl):"; \
+	  $(LOCCOUNT) -x "Makefile|node_modules" $(impl))
+
+#
 # Utility functions
 #
 print-%:
@@ -473,10 +502,6 @@ recur_impls_ = $(filter-out $(foreach impl,$($(1)_EXCLUDES),$(1)^$(impl)),$(fore
 
 # recursive clean
 $(eval $(call recur_template,clean,$(call recur_impls_,clean)))
-
-# recursive stats
-$(eval $(call recur_template,stats,$(call recur_impls_,stats)))
-$(eval $(call recur_template,stats-lisp,$(call recur_impls_,stats-lisp)))
 
 # recursive dist
 $(eval $(call recur_template,dist,$(call recur_impls_,dist)))

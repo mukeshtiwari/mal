@@ -1,6 +1,6 @@
 import { readline } from "./node_readline";
 
-import { Node, MalType, MalString, MalNil, MalList, MalVector, MalHashMap, MalSymbol, MalFunction, isSeq } from "./types";
+import { Node, MalType, MalString, MalNil, MalList, MalVector, MalHashMap, MalSymbol, MalFunction, isAST, isSeq } from "./types";
 import { Env } from "./env";
 import * as core from "./core";
 import { readStr } from "./reader";
@@ -120,6 +120,9 @@ function evalMal(ast: MalType, env: Env): MalType {
     loop: while (true) {
         if (ast.type !== Node.List) {
             return evalAST(ast, env);
+        }
+        if (ast.list.length === 0) {
+            return ast;
         }
 
         ast = macroexpand(ast, env);
@@ -292,7 +295,11 @@ while (true) {
     try {
         console.log(rep(line));
     } catch (e) {
-        const err: Error = e;
-        console.error(err.message);
+        if (isAST(e)) {
+            console.error("Error:", prStr(e));
+        } else {
+            const err: Error = e;
+            console.error("Error:", err.message);
+        }
     }
 }

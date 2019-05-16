@@ -1,4 +1,5 @@
-import { readline } from './node_readline'
+import rl from './node_readline.js'
+const readline = rl.readline
 import { _list_Q, _malfunc, _malfunc_Q } from './types'
 import { BlankException, read_str } from './reader'
 import { pr_str } from './printer'
@@ -89,7 +90,7 @@ while (true) {
         if (line) { console.log(REP(line)) }
     } catch (exc) {
         if (exc instanceof BlankException) { continue }
-        if (exc.stack) { console.log(exc.stack) }
-        else           { console.log(`Error: ${exc}`) }
+        if (exc instanceof Error) { console.warn(exc.stack) }
+        else { console.warn(`Error: ${exc}`) }
     }
 }

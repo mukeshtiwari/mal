@@ -6,6 +6,7 @@ sudo: required
 matrix:
   include:
     - {env: IMPL=ada,       services: [docker]}
+    - {env: IMPL=ada.2,     services: [docker]}
     - {env: IMPL=awk,       services: [docker]}
     - {env: IMPL=bash,      services: [docker]}
     - {env: IMPL=basic basic_MODE=cbm,    services: [docker]}
@@ -19,19 +20,22 @@ matrix:
     - {env: IMPL=clojure clojure_MODE=cljs, services: [docker]}
     - {env: IMPL=common-lisp, services: [docker]}
     - {env: IMPL=crystal,   services: [docker]}
-    - {env: IMPL=d,         services: [docker]}
+    - {env: IMPL=d d_MODE=gdc,  services: [docker]}
+    - {env: IMPL=d d_MODE=ldc2, services: [docker]}
+    - {env: IMPL=d d_MODE=dmd,  services: [docker]}
     - {env: IMPL=dart,      services: [docker]}
     - {env: IMPL=elisp,     services: [docker]}
     - {env: IMPL=elixir,    services: [docker]}
     - {env: IMPL=elm,       services: [docker]}
-    - {env: IMPL=erlang NO_PERF=1, services: [docker]} # perf runs out of memory
+    - {env: IMPL=erlang,    services: [docker]} # perf runs out of memory
     - {env: IMPL=es6,       services: [docker]}
     - {env: IMPL=factor,    services: [docker]}
+    - {env: IMPL=fantom,    services: [docker]}
     - {env: IMPL=forth,     services: [docker]}
     - {env: IMPL=fsharp,    services: [docker]}
     - {env: IMPL=go,        services: [docker]}
     - {env: IMPL=groovy,    services: [docker]}
-    - {env: IMPL=gst,       services: [docker]}
+    - {env: IMPL=gnu-smalltalk, services: [docker]}
     - {env: IMPL=guile,     services: [docker]}
     - {env: IMPL=haskell,   services: [docker]}
     - {env: IMPL=haxe haxe_MODE=neko,   services: [docker]}
@@ -48,7 +52,7 @@ matrix:
     - {env: IMPL=logo,      services: [docker]}
     - {env: IMPL=lua,       services: [docker]}
     - {env: IMPL=make,      services: [docker]}
-    - {env: IMPL=mal BUILD_IMPL=js NO_PERF=1, services: [docker]}
+    - {env: IMPL=mal BUILD_IMPL=js, services: [docker]}
     - {env: IMPL=matlab, services: [docker]} # Uses Octave
     - {env: IMPL=miniMAL,   services: [docker]}
     - {env: IMPL=nasm,      services: [docker]}
@@ -60,7 +64,7 @@ matrix:
     - {env: IMPL=perl,      services: [docker]}
     - {env: IMPL=perl6,     services: [docker]}
     - {env: IMPL=php,       services: [docker]}
-    - {env: IMPL=pil,       services: [docker]}
+    - {env: IMPL=picolisp,  services: [docker]}
     - {env: IMPL=plpgsql,   services: [docker]}
 #    - {env: IMPL=plsql,     services: [docker]}
     - {env: IMPL=ps,        services: [docker]}
@@ -85,11 +89,19 @@ matrix:
     - {env: IMPL=swift NO_DOCKER=1, os: osx, osx_image: xcode7.3}
     - {env: IMPL=swift3,    services: [docker]}
     - {env: IMPL=swift3 NO_DOCKER=1, os: osx, osx_image: xcode8}
+    - {env: IMPL=swift4,    services: [docker]}
+    - {env: IMPL=swift4 NO_DOCKER=1, os: osx, osx_image: xcode10}
     - {env: IMPL=tcl,       services: [docker]}
     - {env: IMPL=ts,        services: [docker]}
+    - {env: IMPL=vala,      services: [docker]}
     - {env: IMPL=vb,        services: [docker]}
     - {env: IMPL=vhdl,      services: [docker]}
     - {env: IMPL=vimscript, services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=wasmtime,  services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=wax,       services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=node,      services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=wace_libc, services: [docker]}
+    - {env: IMPL=wasm wasm_MODE=warpy,     services: [docker]}
     - {env: IMPL=yorick,    services: [docker]}
 
 script:

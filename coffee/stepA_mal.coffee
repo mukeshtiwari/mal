@@ -75,7 +75,8 @@ EVAL = (ast, env) ->
       try return EVAL(a1, env)
       catch exc
         if a2 && a2[0].name == "catch*"
-          if exc instanceof Error then exc = exc.message
+          if exc.object? then exc = exc.object
+          else exc = exc.message
           return EVAL a2[2], new Env(env, [a2[1]], [exc])
         else
           throw exc
@@ -122,8 +123,8 @@ rep("(def! *host-language* \"CoffeeScript\")")
 rep("(def! not (fn* (a) (if a false true)))");
 rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
 rep("(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-rep("(def! *gensym-counter* (atom 0))")
-rep("(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+rep("(def! inc (fn* [x] (+ x 1)))");
+rep("(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))");
 rep("(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 
 if process? && process.argv.length > 2
@@ -141,7 +142,11 @@ while (line = readline.readline("user> ")) != null
     continue if exc instanceof reader.BlankException
     if exc.stack? and exc.stack.length > 2000
       console.log exc.stack.slice(0,1000) + "\n  ..." + exc.stack.slice(-1000)
-    else if exc.stack? console.log exc.stack
-    else               console.log exc
+    else if exc.stack?
+      console.log exc.stack
+    else if exc.object?
+      console.log "Error:", printer._pr_str exc.object, true
+    else
+      console.log exc
 
 # vim: ts=2:sw=2

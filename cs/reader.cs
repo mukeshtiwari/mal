@@ -39,7 +39,7 @@ namespace Mal {
 
         public static List<string> tokenize(string str) {
             List<string> tokens = new List<string>();
-            string pattern = @"[\s ,]*(~@|[\[\]{}()'`~@]|""(?:[\\].|[^\\""])*""|;.*|[^\s \[\]{}()'""`~@,;]*)";
+            string pattern = @"[\s ,]*(~@|[\[\]{}()'`~@]|""(?:[\\].|[^\\""])*""?|;.*|[^\s \[\]{}()'""`~@,;]*)";
             Regex regex = new Regex(pattern);
             foreach (Match match in regex.Matches(str)) {
                 string token = match.Groups[1].Value;
@@ -53,7 +53,7 @@ namespace Mal {
 
         public static MalVal read_atom(Reader rdr) {
             string token = rdr.next();
-            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|^("".*"")$|:(.*)|(^[^""]*$)";
+            string pattern = @"(^-?[0-9]+$)|(^-?[0-9][0-9.]*$)|(^nil$)|(^true$)|(^false$)|(^""(?:[\\].|[^\\""])*""$)|(^"".*$)|:(.*)|(^[^""]*$)";
             Regex regex = new Regex(pattern);
             Match match = regex.Match(token);
             //Console.WriteLine("token: ^" + token + "$");
@@ -77,9 +77,11 @@ namespace Mal {
                     .Replace("\u029e", "\\");
                 return new Mal.types.MalString(str);
             } else if (match.Groups[7].Value != String.Empty) {
-                return new Mal.types.MalString("\u029e" + match.Groups[7].Value);
+                throw new ParseError("expected '\"', got EOF");
             } else if (match.Groups[8].Value != String.Empty) {
-                return new Mal.types.MalSymbol(match.Groups[8].Value);
+                return new Mal.types.MalString("\u029e" + match.Groups[8].Value);
+            } else if (match.Groups[9].Value != String.Empty) {
+                return new Mal.types.MalSymbol(match.Groups[9].Value);
             } else {
                 throw new ParseError("unrecognized '" + match.Groups[0] + "'");
             }

@@ -117,7 +117,8 @@
                   (catch #?(:clj Throwable :cljs :default) t
                     (EVAL (nth a2 2) (env/env env
                                               [(nth a2 1)]
-                                              [#?(:clj (.getMessage t)
+                                              [#?(:clj (or (.getMessage t)
+                                                           (.toString t))
                                                   :cljs (.-message t))]))))
                 (EVAL a1 env))
 
@@ -151,7 +152,7 @@
                   (apply f args))))))))))
 
 ;; print
-(defn PRINT [exp] (pr-str exp))
+(defn PRINT [exp] (printer/pr-str exp))
 
 ;; repl
 (def repl-env (env/env))
@@ -170,8 +171,8 @@
 (rep "(def! not (fn* [a] (if a false true)))")
 (rep "(def! load-file (fn* [f] (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-(rep "(def! *gensym-counter* (atom 0))")
-(rep "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+(rep "(def! inc (fn* [x] (+ x 1)))")
+(rep "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))")
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 
 ;; repl loop
@@ -181,6 +182,9 @@
       (when-not (re-seq #"^\s*$|^\s*;.*$" line) ; blank/comment
         (try
           (println (rep line))
+          #?(:cljs (catch ExceptionInfo e
+                     (println "Error:" (or (:data (ex-data e))
+                                           (.-stack e)))))
           #?(:clj  (catch Throwable e (clojure.repl/pst e))
              :cljs (catch js/Error e (println (.-stack e))))))
       (recur))))

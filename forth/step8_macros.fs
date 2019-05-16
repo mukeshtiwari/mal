@@ -237,8 +237,7 @@ MalSymbol
     sym env env/get-addr
     dup 0= if
         drop
-        ." Symbol '" sym pr-str safe-type ." ' not found." cr
-        1 throw
+        0 0 s" ' not found" sym pr-str s" '" ...throw-str
     else
         @
     endif ;;
@@ -308,6 +307,7 @@ defcore swap! { argv argc -- val }
     new-val atom Atom/val !
     new-val ;;
 
+s\" (def! not (fn* (x) (if x false true)))" rep 2drop
 s\" (def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))" rep 2drop
 s\" (defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))" rep 2drop
 s\" (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) `(let* (or_FIXME ~(first xs)) (if or_FIXME or_FIXME (or ~@(rest xs))))))))" rep 2drop
@@ -318,12 +318,23 @@ s\" (defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs
       stack-leak-detect
       buff 128 stdin read-line throw
     while ( num-bytes-read )
-      buff swap ( str-addr str-len )
-      ['] rep
-      \ execute type
-      catch ?dup 0= if safe-type else ." Caught error " . endif
-      cr
-      stack-leak-detect <> if ." --stack leak--" cr endif
+      dup 0 <> if
+        buff swap ( str-addr str-len )
+        ['] rep
+        \ execute ['] nop \ uncomment to see stack traces
+        catch ?dup 0= if
+            safe-type cr
+            stack-leak-detect <> if ." --stack leak--" cr endif
+        else { errno }
+            begin stack-leak-detect = until
+            errno 1 <> if
+                s" forth-errno" MalKeyword. errno MalInt. MalMap/Empty assoc
+                to exception-object
+            endif
+            ." Uncaught exception: "
+            exception-object pr-str safe-type cr
+        endif
+      endif
     repeat ;
 
 : main ( -- )

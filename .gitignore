@@ -54,6 +54,7 @@ erlang/src/*.beam
 es6/mal.js
 es6/.esm-cache
 factor/mal.factor
+fantom/lib
 forth/mal.fs
 fsharp/*.exe
 fsharp/*.dll
@@ -70,6 +71,8 @@ haxe/*.js
 java/mal.jar
 java/target/
 java/dependency-reduced-pom.xml
+.npm/
+.node-gyp/
 js/mal.js
 js/web/mal.js
 kotlin/*.jar
@@ -97,10 +100,12 @@ objpascal/regexpr/Source/RegExpr.ppu
 perl/mal.pl
 perl6/.precomp/
 php/mal.php
+php/mal-web.php
 ps/mal.ps
 python/mal.pyz
 r/mal.r
 ruby/mal.rb
+.cargo/
 rust/target/
 rust/Cargo.lock
 rust/.cargo
@@ -139,3 +144,5 @@ elm/elm-stuff
 elm/*.js
 !elm/node_readline.js
 !elm/bootstrap.js
+wasm/*.wat
+wasm/*.wasm

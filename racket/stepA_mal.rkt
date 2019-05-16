@@ -79,7 +79,9 @@
             [(eq? 'macroexpand a0)
              (macroexpand (_nth ast 1) env)]
             [(eq? 'try* a0)
-             (if (eq? 'catch* (_nth (_nth ast 2) 0))
+             (if (or (< (length ast) 3)
+                     (not (eq? 'catch* (_nth (_nth ast 2) 0))))
+               (EVAL (_nth ast 1) env)
                (let ([efn (lambda (exc)
                             (EVAL (_nth (_nth ast 2) 2)
                                   (new Env%
@@ -90,8 +92,7 @@
                    ([mal-exn?  (lambda (exc) (efn (mal-exn-val exc)))]
                     [string?   (lambda (exc) (efn exc))]
                     [exn:fail? (lambda (exc) (efn (format "~a" exc)))])
-                   (EVAL (_nth ast 1) env)))
-               (EVAL (_nth ast 1)))]
+                   (EVAL (_nth ast 1) env))))]
             [(eq? 'do a0)
              (eval-ast (drop (drop-right ast 1) 1) env)
              (EVAL (last ast) env)]
@@ -142,8 +143,8 @@
 (rep "(def! not (fn* (a) (if a false true)))")
 (rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))")
 (rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
-(rep "(def! *gensym-counter* (atom 0))")
-(rep "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))")
+(rep "(def! inc (fn* [x] (+ x 1)))")
+(rep "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))")
 (rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))")
 
 )

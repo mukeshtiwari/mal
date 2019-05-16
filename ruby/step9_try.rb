@@ -111,7 +111,7 @@ def EVAL(ast, env)
             if a2 && a2[0] == :"catch*"
                 return EVAL(a2[2], Env.new(env, [a2[1]], [exc]))
             else
-                raise esc
+                raise exc
             end
         end
     when :do
@@ -174,7 +174,11 @@ while line = _readline("user> ")
     begin
         puts REP[line]
     rescue Exception => e
-        puts "Error: #{e}" 
+        if e.is_a? MalException
+            puts "Error: #{_pr_str(e.data, true)}" 
+        else
+            puts "Error: #{e}" 
+        end
         puts "\t#{e.backtrace.join("\n\t")}"
     end
 end

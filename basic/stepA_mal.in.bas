@@ -367,19 +367,20 @@ SUB EVAL
 
     EVAL_TRY:
       REM PRINT "try*"
-      GOSUB EVAL_GET_A1: REM set A1, A2, and A3
+      GOSUB EVAL_GET_A1: REM set A1
 
       GOSUB PUSH_A: REM push/save A
       A=A1:CALL EVAL: REM eval A1
       GOSUB POP_A: REM pop/restore A
 
-      REM if there is not error or catch block then return
-      IF ER=-2 OR Z%(A+1)=0 THEN GOTO EVAL_RETURN
+      GOSUB EVAL_GET_A2: REM set A1 and A2
+
+      REM if there is no error or catch block then return
+      IF ER=-2 OR A2=0 THEN GOTO EVAL_RETURN
 
       REM create environment for the catch block eval
       C=E:GOSUB ENV_NEW:E=R
 
-      GOSUB EVAL_GET_A2: REM set A1 and A2
       A=A2:GOSUB EVAL_GET_A2: REM set A1 and A2 from catch block
 
       REM create object for ER=-1 type raw string errors
@@ -568,11 +569,11 @@ MAIN:
   A$=A$+" forms to cond"+CHR$(34)+")) (cons 'cond (rest (rest xs)))))))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
-  A$="(def! *gensym-counter* (atom 0))"
+  A$="(def! inc (fn* [x] (+ x 1)))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
-  A$="(def! gensym (fn* [] (symbol (str "+CHR$(34)+"G__"+CHR$(34)
-  A$=A$+" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+  A$="(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str "+CHR$(34)
+  A$=A$+"G__"+CHR$(34)+" (swap! counter inc))))))"
   GOSUB RE:AY=R:GOSUB RELEASE
 
   A$="(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs)"

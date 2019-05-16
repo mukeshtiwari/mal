@@ -79,7 +79,7 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
-        var let_env = env
+        var let_env = initEnv(env)
         case a1.kind
         of List, Vector:
           for i in countup(0, a1.list.high, 2):
@@ -108,6 +108,8 @@ proc eval(ast: MalType, env: Env): MalType =
         let
           a1 = ast.list[1]
           a2 = ast.list[2]
+        if ast.list.len <= 2:
+            return a1.eval(env)
         if a2.list[0].str == "catch*":
           try:
             return a1.eval(env)
@@ -172,8 +174,8 @@ proc rep(str: string): string {.discardable.} =
 rep "(def! not (fn* (a) (if a false true)))"
 rep "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))"
 rep "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"
-rep "(def! *gensym-counter* (atom 0))"
-rep "(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))"
+rep "(def! inc (fn* [x] (+ x 1)))"
+rep "(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))"
 rep "(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))"
 rep "(def! *host-language* \"nim\")"
 
@@ -189,6 +191,10 @@ while true:
     echo line.rep
   except Blank: discard
   except IOError: quit()
+  except MalError:
+    let exc = (ref MalError) getCurrentException()
+    echo "Error: " & exc.t.list[0].pr_str
   except:
+    stdout.write "Error: "
     echo getCurrentExceptionMsg()
     echo getCurrentException().getStackTrace()

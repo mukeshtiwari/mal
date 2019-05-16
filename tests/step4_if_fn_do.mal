@@ -18,10 +18,10 @@
 ;=>0
 (count nil)
 ;=>0
-(if (> (count (list 1 2 3)) 3) "yes" "no")
-;=>"no"
-(if (>= (count (list 1 2 3)) 3) "yes" "no")
-;=>"yes"
+(if (> (count (list 1 2 3)) 3) 89 78)
+;=>78
+(if (>= (count (list 1 2 3)) 3) 89 78)
+;=>89
 
 
 ;; Testing if form
@@ -29,6 +29,8 @@
 ;=>7
 (if false 7 8)
 ;=>8
+(if false 7 false)
+;=>false
 (if true (+ 1 7) (+ 1 8))
 ;=>8
 (if false (+ 1 7) (+ 1 8))
@@ -36,8 +38,6 @@
 (if nil 7 8)
 ;=>8
 (if 0 7 8)
-;=>7
-(if "" 7 8)
 ;=>7
 (if (list) 7 8)
 ;=>7
@@ -108,18 +108,6 @@
 ;=>true
 (= 1 0)
 ;=>false
-(= "" "")
-;=>true
-(= "abc" "abc")
-;=>true
-(= "abc" "")
-;=>false
-(= "" "abc")
-;=>false
-(= "abc" "def")
-;=>false
-(= "abc" "ABC")
-;=>false
 (= true true)
 ;=>true
 (= false false)
@@ -138,10 +126,6 @@
 (= 0 (list))
 ;=>false
 (= (list) 0)
-;=>false
-(= (list) "")
-;=>false
-(= "" (list))
 ;=>false
 
 
@@ -172,15 +156,15 @@
 ;=>15
 
 ;; Testing do form
-(do (prn "prn output1"))
-; "prn output1"
+(do (prn 101))
+;/101
 ;=>nil
-(do (prn "prn output2") 7)
-; "prn output2"
+(do (prn 102) 7)
+;/102
 ;=>7
-(do (prn "prn output1") (prn "prn output2") (+ 1 2))
-; "prn output1"
-; "prn output2"
+(do (prn 101) (prn 102) (+ 1 2))
+;/101
+;/102
 ;=>3
 
 (do (def! a 6) 7 (+ a 8))
@@ -220,6 +204,30 @@ a
 ;;
 ;; -------- Deferrable Functionality --------
 
+;; Testing if on strings
+
+(if "" 7 8)
+;=>7
+
+;; Testing string equality
+
+(= "" "")
+;=>true
+(= "abc" "abc")
+;=>true
+(= "abc" "")
+;=>false
+(= "" "abc")
+;=>false
+(= "abc" "def")
+;=>false
+(= "abc" "ABC")
+;=>false
+(= (list) "")
+;=>false
+(= "" (list))
+;=>false
+
 ;; Testing variable length arguments
 
 ( (fn* (& more) (count more)) 1 2 3)
@@ -242,6 +250,8 @@ a
 
 ;; Testing language defined not function
 (not false)
+;=>true
+(not nil)
 ;=>true
 (not true)
 ;=>false
@@ -339,69 +349,69 @@ a
 
 ;; Testing prn
 (prn)
-; 
+;/
 ;=>nil
 
 (prn "")
-; ""
+;/""
 ;=>nil
 
 (prn "abc")
-; "abc"
+;/"abc"
 ;=>nil
 
 (prn "abc  def" "ghi jkl")
-; "abc  def" "ghi jkl"
+;/"abc  def" "ghi jkl"
 
 (prn "\"")
-; "\""
+;/"\\""
 ;=>nil
 
 (prn "abc\ndef\nghi")
-; "abc\ndef\nghi"
+;/"abc\\ndef\\nghi"
 ;=>nil
 
 (prn "abc\\def\\ghi")
-; "abc\\def\\ghi"
+;/"abc\\\\def\\\\ghi"
 nil
 
 (prn (list 1 2 "abc" "\"") "def")
-; (1 2 "abc" "\"") "def"
+;/\(1 2 "abc" "\\""\) "def"
 ;=>nil
 
 
 ;; Testing println
 (println)
-; 
+;/
 ;=>nil
 
 (println "")
-; 
+;/
 ;=>nil
 
 (println "abc")
-; abc
+;/abc
 ;=>nil
 
 (println "abc  def" "ghi jkl")
-; abc  def ghi jkl
+;/abc  def ghi jkl
 
 (println "\"")
-; "
+;/"
 ;=>nil
 
 (println "abc\ndef\nghi")
-; abc
-; def
-; ghi
+;/abc
+;/def
+;/ghi
 ;=>nil
 
 (println "abc\\def\\ghi")
-; abc\def\ghi
+;/abc\\def\\ghi
 ;=>nil
 
 (println (list 1 2 "abc" "\"") "def")
-; (1 2 abc ") def
+;/\(1 2 abc "\) def
 ;=>nil
 
 ;>>> optional=True

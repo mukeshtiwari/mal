@@ -284,11 +284,13 @@ eval_macroexpand = (env, params) ->
 
 
 eval_try = (env, params) ->
-    if params.length != 2
-        runtime-error "'try*' expected 2 parameters, 
+    if params.length > 2
+        runtime-error "'try*' expected 1 or 2 parameters, 
                        got #{params.length}"
-
     try-form = params[0]
+    if params.length == 1
+        return eval_ast env, try-form
+
     catch-clause = params[1]
     if catch-clause.type != \list or
             catch-clause.value.length != 3 or
@@ -328,6 +330,9 @@ rep = (line) ->
     |> (ast) -> pr_str ast, print_readably=true
 
 
+# Define not.
+rep '(def! not (fn* (x) (if x false true)))'
+
 # Define load-file.
 rep '
 (def! load-file 
@@ -347,14 +352,13 @@ rep '
           (throw "odd number of forms to cond"))
         (cons \'cond (rest (rest xs)))))))'
 
-rep '(def! *gensym-counter* (atom 0))'
+rep '(def! inc (fn* [x] (+ x 1)))'
 
 rep '
 (def! gensym
-  (fn* []
-    (symbol
-      (str "G__"
-        (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))'
+  (let* [counter (atom 0)]
+    (fn* []
+      (symbol (str "G__" (swap! counter inc))))))'
 
 rep '
 (defmacro! or
@@ -393,5 +397,7 @@ else
         break if not line? or line == ''
         try
             console.log rep line
-        catch {message}
-            console.error message
+        catch error
+            if error.message
+            then console.error error.message
+            else console.error "Error:", pr_str error, print_readably=true

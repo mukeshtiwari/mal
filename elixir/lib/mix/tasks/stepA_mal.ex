@@ -51,11 +51,12 @@ defmodule Mix.Tasks.StepAMal do
       """, env)
 
     # gensym
-    read_eval_print("(def! *gensym-counter* (atom 0))", env)
+    read_eval_print("(def! inc (fn* [x] (+ x 1)))", env)
     read_eval_print("""
       (def! gensym
-        (fn* []
-          (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))
+        (let* [counter (atom 0)]
+          (fn* []
+            (symbol (str \"G__\" (swap! counter inc))))))
       """, env)
 
     # or:
@@ -250,6 +251,9 @@ defmodule Mix.Tasks.StepAMal do
   # (try* A (catch* B C))
   defp eval_list([{:symbol, "try*"}, try_form, {:list, catch_list, _meta}], env, _) do
     eval_try(try_form, catch_list, env)
+  end
+  defp eval_list([{:symbol, "try*"}, try_form], env, _) do
+    eval(try_form, env)
   end
   defp eval_list([{:symbol, "try*"}, _try_form, _], _env, _) do
     throw({:error, "try* requires a list as the second parameter"})

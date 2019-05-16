@@ -226,8 +226,8 @@ int main () {
     REP(@"(def! not (fn* (a) (if a false true)))", repl_env);
     REP(@"(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))", repl_env);
     REP(@"(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", repl_env);
-    REP(@"(def! *gensym-counter* (atom 0))", repl_env);
-    REP(@"(def! gensym (fn* [] (symbol (str \"G__\" (swap! *gensym-counter* (fn* [x] (+ 1 x)))))))", repl_env);
+    REP(@"(def! inc (fn* [x] (+ x 1)))", repl_env);
+    REP(@"(def! gensym (let* [counter (atom 0)] (fn* [] (symbol (str \"G__\" (swap! counter inc))))))", repl_env);
     REP(@"(defmacro! or (fn* (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (let* (condvar (gensym)) `(let* (~condvar ~(first xs)) (if ~condvar ~condvar (or ~@(rest xs)))))))))", repl_env);
 
 
@@ -249,6 +249,9 @@ int main () {
             printf("%s\n", [[REP(line, repl_env) description] UTF8String]);
         } @catch(NSString *e) {
             printf("Error: %s\n", [e UTF8String]);
+        } @catch(NSObject *e) {
+            NSObject * exc = e;
+            printf("Exception: %s\n", [_pr_str(exc, true) UTF8String]);
         } @catch(NSException *e) {
             if ([[e name] isEqualTo:@"ReaderContinue"]) { continue; }
             printf("Exception: %s\n", [[e reason] UTF8String]);
