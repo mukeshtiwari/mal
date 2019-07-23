@@ -156,8 +156,9 @@ package body Core is
 
    function Keyword (Args : in Types.T_Array) return Types.T is
    begin
-      Err.Check (Args'Length = 1 and then Args (Args'First).Kind = Kind_String,
-                 "expected a string");
+      Err.Check (Args'Length = 1
+                   and then Args (Args'First).Kind in Types.Kind_Key,
+                 "expected a keyword or a string");
       return (Kind_Keyword, Args (Args'First).Str);
    end Keyword;
 
@@ -178,8 +179,10 @@ package body Core is
                return A1.Builtin_With_Meta.all.Meta;
             when Kind_Builtin =>
                return Types.Nil;
+            when Kind_Atom =>
+               return A1.Atom.all.Meta;
             when others =>
-               Err.Raise_With ("expected a function, map or sequence");
+               Err.Raise_With ("expected an atom, function, map or sequence");
          end case;
       end;
    end Meta;
@@ -445,8 +448,10 @@ package body Core is
             when Kind_Map =>
                return A1.Map.all.With_Meta (A2);
             when Kind_Fn =>
-               return Types.Fns.New_Function (A1.Fn.all.Params, A1.Fn.all.Ast,
-                                              A1.Fn.all.Env, A2);
+               return (Kind_Fn, Types.Fns.New_Function
+                         (A1.Fn.all.Params, A1.Fn.all.Ast, A1.Fn.all.Env, A2));
+            when Kind_Atom =>
+               return A1.Atom.all.With_Meta (A2);
             when others =>
                Err.Raise_With
                  ("parameter 1 must be a function, map or sequence");
